@@ -1,0 +1,25 @@
+image: registry.gitlab.com/webcrafterspl-dockerimages/php72-npm-build:latest
+
+stages:
+  - deploy
+
+before_script:
+  - apt-get update
+  - apt-get install zip unzip
+  - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  - php composer-setup.php
+  - php -r "unlink('composer-setup.php');"
+  - php composer.phar install
+  - npm install
+  - npm run prod
+  - eval `ssh-agent -s`
+
+
+deploy:
+  stage: deploy
+  artifacts:
+    paths:
+      - build/
+  script:
+    - ssh-add <(echo "$DEV_SSH_KEY")
+    - scp -P22 -r build/* $DEV_SSH_USER@$DEV_SSH_PASS:/home/klient.dhosting.pl/webcrafters/leasing.webcrafters.dev

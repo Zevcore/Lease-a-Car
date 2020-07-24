@@ -1,0 +1,48 @@
+version: '2'
+services:
+    nginx:
+      image: nginx:latest
+      ports:
+        - "8080:80"
+      volumes:
+        - ./:/code
+        - ./docker/conf/:/etc/nginx/conf.d/
+        - ./docker/www_logs/nginx:/var/log/nginx
+      links:
+        - phpfpm
+    phpfpm:
+      build: docker/dockerContainers/php72-fpm
+      command: bash -c "/etc/init.d/cron start && php-fpm -F"
+      links:
+        - mysql
+        - redis
+      volumes:
+        - ./:/code:cached
+        - ./docker/php/php.ini:/usr/local/etc/php/php.ini
+      ports:
+        - "9000:9000"
+    mysql:
+      image: mariadb:latest
+      volumes:
+        - ./docker/mysql-data:/var/lib/mysql
+      ports:
+        - "3307:3306"
+      environment:
+        MYSQL_ROOT_PASSWORD: root
+        MYSQL_DATABASE: database
+
+    phpmyadmin:
+      image: phpmyadmin/phpmyadmin
+      depends_on:
+      - mysql
+      ports:
+      - '8085:80'
+      environment:
+        MYSQL_ROOT_PASSWORD: root
+        MYSQL_USERNAME: root
+        PMA_HOST: mysql
+
+    redis:
+      image: redis:alpine
+      ports:
+        - 6379:6379
